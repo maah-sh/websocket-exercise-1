@@ -1,6 +1,5 @@
 import asyncio
 import json
-
 import websockets
 
 
@@ -11,19 +10,22 @@ async def send_message(websocket, client_name):
     await websocket.send(json.dumps(message))
 
 
-async def receive_message(websocket, client_name):
+async def receive_message(websocket):
     message = await websocket.recv()
     message_parsed = json.loads(message)
     print(message_parsed['client'] +': ' + message_parsed['text'])
 
 
 async def handle_messages(websocket, client_name):
-    while True:
-        receive_task = asyncio.create_task(receive_message(websocket, client_name))
-        send_task = asyncio.create_task(send_message(websocket, client_name))
-        await receive_task
-        await send_task
+    async def send_loop():
+        while True:
+            await send_message(websocket, client_name)
 
+    async def receive_loop():
+        while True:
+            await receive_message(websocket)
+
+    await asyncio.gather(send_loop(), receive_loop())
 
 async def main():
     client_name = input('Enter your name: ')
